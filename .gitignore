@@ -1,0 +1,26 @@
+# Byte-compiled / virtual env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env/
+.venv/
+venv/
+
+# SQLite DB
+data/
+
+# Editor directories
+.vscode/
+.idea/
+
+# Python packaging
+dist/
+build/
+
+# Tests / coverage
+htmlcov/
+.coverage
+
+# Node
+node_modules/
