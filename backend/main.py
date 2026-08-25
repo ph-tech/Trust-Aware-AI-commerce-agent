@@ -259,13 +259,14 @@ def roundtrip(req: RoundtripRequest):
     conn.close()
 
     response = {
+        "session_id": session_id,
         "action": action,
         "candidate": top,
         "reasons": reasons,
         "trust": current_trust,
     }
     if action == "UPSELL":
-        response["message"] = f"I recommend {top['product']['name']} for ${top['product']['price']:.2f}."
+        response["message"] = f"I recommend {top['product']['name']} for INR {top['product']['price']:.2f}."
     else:
         response["message"] = "I won't proactively suggest items right now."
 
