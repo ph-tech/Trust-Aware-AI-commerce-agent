@@ -9,6 +9,7 @@ import json
 import os
 
 app = FastAPI(title="Trust-Aware AI Commerce Agent (backend)")
+MAX_CATALOG_PRICE = 80_000.0
 
 # Allow CORS from localhost frontend during development
 app.add_middleware(
@@ -142,7 +143,7 @@ def score_product(req: ScoreRequest):
         relevance=req.relevance,
         compatibility=req.compatibility,
         business_goal=req.business_goal or "increase_aov",
-        max_price_in_catalog=1200.0,
+        max_price_in_catalog=MAX_CATALOG_PRICE,
     )
     return {"score": score}
 
@@ -214,7 +215,7 @@ def roundtrip(req: RoundtripRequest):
         # For prototype, if product has compatible_with entries assume medium compatibility
         compatibility = 70.0 if compat_list else 40.0
 
-        score = compute_score(price=float(r["price"]), margin_pct=float(r["margin_pct"]), relevance=relevance, compatibility=compatibility, business_goal=req.business_goal or "increase_aov", max_price_in_catalog=1200.0)
+        score = compute_score(price=float(r["price"]), margin_pct=float(r["margin_pct"]), relevance=relevance, compatibility=compatibility, business_goal=req.business_goal or "increase_aov", max_price_in_catalog=MAX_CATALOG_PRICE)
         candidates.append({"product": {"id": r["id"], "name": r["name"], "category": r["category"], "price": r["price"], "margin_pct": r["margin_pct"]}, "relevance": relevance, "compatibility": compatibility, "score": score})
 
     # pick top candidate by score
@@ -266,7 +267,7 @@ def roundtrip(req: RoundtripRequest):
         "trust": current_trust,
     }
     if action == "UPSELL":
-        response["message"] = f"I recommend {top['product']['name']} for INR {top['product']['price']:.2f}."
+        response["message"] = f"I recommend {top['product']['name']} for ₹{top['product']['price']:,.0f}."
     else:
         response["message"] = "I won't proactively suggest items right now."
 

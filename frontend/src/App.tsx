@@ -27,8 +27,8 @@ interface Recommendation {
 }
 
 const quickPrompts = [
-  "I need a laptop under 1000",
-  "Show me a phone under 700",
+  "I need a laptop under 60000",
+  "Show me a phone under 40000",
   "Find a useful laptop accessory",
 ];
 
