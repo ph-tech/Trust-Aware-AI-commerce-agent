@@ -6,35 +6,31 @@ import os
 import sys
 from pathlib import Path
 
-# Create temp DB for tests
-@pytest.fixture
-def temp_db():
+
+@pytest.fixture(scope="function")
+def temp_db(monkeypatch):
     """Create and seed a temporary database for testing."""
+    # Create temp directory
     temp_dir = tempfile.mkdtemp()
     db_path = os.path.join(temp_dir, "test_catalog.db")
     
-    # Set env var so backend uses this DB
-    old_db_path = os.environ.get("DB_PATH")
-    os.environ["DB_PATH"] = db_path
+    # Set environment variable
+    monkeypatch.setenv("DB_PATH", db_path)
     
-    # Import and run ensure_db with temp path
+    # Initialize database
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from backend.init_db import ensure_db
+    import backend.init_db as init_db_mod
     
-    # Temporarily override DB_PATH
-    import backend.init_db
-    original = backend.init_db.DB_PATH
-    backend.init_db.DB_PATH = Path(db_path)
+    # Temporarily override DB_PATH in the module
+    old_path = init_db_mod.DB_PATH
+    init_db_mod.DB_PATH = Path(db_path)
     ensure_db()
-    backend.init_db.DB_PATH = original
+    init_db_mod.DB_PATH = old_path
     
     yield db_path
     
     # Cleanup
-    if old_db_path:
-        os.environ["DB_PATH"] = old_db_path
-    else:
-        os.environ.pop("DB_PATH", None)
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
@@ -51,7 +47,7 @@ def test_roundtrip_valid_request(temp_db):
     
     assert response.status_code == 200
     data = response.json()
-    assert "response" in data or "message" in data
+    assert "message" in data
 
 
 def test_roundtrip_with_conversion_goal(temp_db):
@@ -67,7 +63,7 @@ def test_roundtrip_with_conversion_goal(temp_db):
     
     assert response.status_code == 200
     data = response.json()
-    assert "response" in data or "message" in data
+    assert "message" in data
 
 
 def test_roundtrip_empty_text(temp_db):

@@ -7,31 +7,31 @@ import sys
 from pathlib import Path
 import concurrent.futures
 
-@pytest.fixture
-def temp_db():
+
+@pytest.fixture(scope="function")
+def temp_db(monkeypatch):
     """Create and seed a temporary database for testing."""
+    # Create temp directory
     temp_dir = tempfile.mkdtemp()
     db_path = os.path.join(temp_dir, "test_catalog.db")
     
-    old_db_path = os.environ.get("DB_PATH")
-    os.environ["DB_PATH"] = db_path
+    # Set environment variable
+    monkeypatch.setenv("DB_PATH", db_path)
     
+    # Initialize database
     sys.path.insert(0, str(Path(__file__).parent.parent))
     from backend.init_db import ensure_db
+    import backend.init_db as init_db_mod
     
-    # Temporarily override DB_PATH
-    import backend.init_db
-    original = backend.init_db.DB_PATH
-    backend.init_db.DB_PATH = Path(db_path)
+    # Temporarily override DB_PATH in the module
+    old_path = init_db_mod.DB_PATH
+    init_db_mod.DB_PATH = Path(db_path)
     ensure_db()
-    backend.init_db.DB_PATH = original
+    init_db_mod.DB_PATH = old_path
     
     yield db_path
     
-    if old_db_path:
-        os.environ["DB_PATH"] = old_db_path
-    else:
-        os.environ.pop("DB_PATH", None)
+    # Cleanup
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 
