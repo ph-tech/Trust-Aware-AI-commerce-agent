@@ -1,9 +1,11 @@
 import sqlite3
 import json
+import os
 from pathlib import Path
-from datetime import datetime
 
-DB_PATH = Path("data/catalog.db")
+
+def get_db_path() -> Path:
+    return Path(os.environ.get("DB_PATH", "data/catalog.db"))
 
 PRODUCTS = [
     # Laptops
@@ -45,8 +47,9 @@ PRODUCTS = [
 
 
 def ensure_db():
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    db_path = get_db_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
 
@@ -113,4 +116,4 @@ def ensure_db():
 
 if __name__ == "__main__":
     ensure_db()
-    print("DB initialized at", DB_PATH)
+    print("DB initialized at", get_db_path())

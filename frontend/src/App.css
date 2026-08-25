@@ -1,0 +1,134 @@
+.page {
+  width: min(760px, calc(100% - 2rem));
+  margin: 4rem auto;
+}
+
+.panel,
+.result {
+  padding: 2rem;
+  background: #fff;
+  border: 1px solid #dce3ef;
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgb(27 42 79 / 8%);
+}
+
+.eyebrow {
+  margin: 0;
+  color: #3156ad;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0.6rem 0;
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1.1;
+}
+
+.intro {
+  color: #526075;
+  line-height: 1.6;
+}
+
+form {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 2rem;
+}
+
+label {
+  margin-top: 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+input,
+select,
+button {
+  min-height: 44px;
+  border-radius: 8px;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #b8c5da;
+  color: inherit;
+  background: #fff;
+}
+
+.composer {
+  display: flex;
+  gap: 0.6rem;
+}
+
+button {
+  padding: 0 1rem;
+  border: 0;
+  color: #fff;
+  background: #3156ad;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.result,
+.error {
+  margin-top: 1rem;
+}
+
+.result h2 {
+  margin: 0.8rem 0;
+  font-size: 1.25rem;
+}
+
+.result p {
+  color: #526075;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.recommend {
+  color: #146c43;
+  background: #d9f7e7;
+}
+
+.neutral {
+  color: #704d08;
+  background: #fff0c7;
+}
+
+.error {
+  padding: 1rem;
+  color: #a10d22;
+  background: #ffe7eb;
+  border-radius: 8px;
+}
+
+@media (max-width: 560px) {
+  .page {
+    margin: 1rem auto;
+  }
+
+  .panel,
+  .result {
+    padding: 1.25rem;
+  }
+
+  .composer {
+    flex-direction: column;
+  }
+}

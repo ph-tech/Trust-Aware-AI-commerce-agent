@@ -2,14 +2,13 @@
 # Implements the Interaction Trust deltas from the spec and writes decisions to the SQLite DB.
 import sqlite3
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
-
-DB_PATH = "data/catalog.db"
+import os
 
 
 def _conn():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(os.environ.get("DB_PATH", "data/catalog.db"))
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -18,7 +17,7 @@ def get_or_create_session(business_goal: str = "increase_aov") -> Dict[str, Any]
     conn = _conn()
     c = conn.cursor()
     # Create a fresh session (simple single-session prototype). We always create a new session.
-    created_at = datetime.utcnow().isoformat()
+    created_at = datetime.now(timezone.utc).isoformat()
     c.execute(
         "INSERT INTO sessions (created_at, interaction_trust, business_goal, cart_total) VALUES (?, ?, ?, ?)",
         (created_at, 100, business_goal, 0.0),
@@ -80,7 +79,7 @@ def write_decision(
 ) -> None:
     conn = _conn()
     c = conn.cursor()
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = datetime.now(timezone.utc).isoformat()
     c.execute(
         "INSERT INTO decisions (session_id, timestamp, action, trust_score_at_decision, candidate_product_id, reasons, business_goal, cart_value_at_decision) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         (session_id, timestamp, action, int(trust_score_at_decision), candidate_product_id, json.dumps(reasons), business_goal, cart_value_at_decision),

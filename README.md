@@ -31,7 +31,7 @@ Response + cart update
 - **Frontend:** React (TypeScript)
 - **Backend:** Python + FastAPI
 - **Database:** SQLite (single-file, zero setup)
-- **LLM:** Claude API (intent extraction only)
+- **Intent extraction:** Deterministic heuristic (ready to be replaced with an LLM)
 
 ## Build Timeline (14 days: Aug 22 - Sep 5)
 - **Days 1-3:** Core pipeline end-to-end
@@ -47,18 +47,28 @@ Response + cart update
 4. Goal toggle (AOV vs Conversion mode differences)
 
 ## Key Files
-- `backend/db/schema.sql` — SQLite schema
-- `backend/db/seed.py` — Product catalog seeding
+- `backend/init_db.py` — SQLite schema and catalog seeding
 - `backend/scoring.py` — Deterministic scoring engine (unit tested)
 - `backend/main.py` — FastAPI application
 - `backend/trust.py` — Trust state & rule evaluation
 - `frontend/src/` — React chat UI, cart, decision panel
 
 ## Getting Started
-1. Install dependencies: `pip install fastapi uvicorn anthropic sqlite3` (backend), `npm install` (frontend)
-2. Initialize database: `python backend/db/seed.py`
+1. Install backend dependencies: `pip install -r requirements.txt`
+2. Initialize database: `python backend/init_db.py`
 3. Start backend: `uvicorn backend.main:app --reload`
-4. Start frontend: `npm start`
+4. In another terminal, start the frontend: `cd frontend && npm install && npm run dev`
+
+## Testing
+
+Run the test suite with:
+
+```bash
+pytest -v
+```
+
+Each test creates and seeds its own temporary SQLite database, so it does not alter
+the local `data/catalog.db` file.
 
 ---
 **Status:** Scaffolding & foundation setup (Aug 22)

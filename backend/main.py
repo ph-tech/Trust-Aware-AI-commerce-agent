@@ -6,9 +6,9 @@ from typing import Optional, List, Dict, Any
 from backend.scoring import compute_score
 from backend import trust as trust_module
 import json
+import os
 
 app = FastAPI(title="Trust-Aware AI Commerce Agent (backend)")
-DB_PATH = "data/catalog.db"
 
 # Allow CORS from localhost frontend during development
 app.add_middleware(
@@ -21,7 +21,7 @@ app.add_middleware(
 
 
 def get_conn():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(os.environ.get("DB_PATH", "data/catalog.db"))
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -99,7 +99,7 @@ def extract_intent(req: IntentRequest):
     budget = None
     import re
 
-    m = re.search(r"(\d{2,6})(k)?", text)
+    m = re.search(r"(\d{1,6})(k)?", text)
     if m:
         val = int(m.group(1))
         if m.group(2):
@@ -215,7 +215,7 @@ def roundtrip(req: RoundtripRequest):
         compatibility = 70.0 if compat_list else 40.0
 
         score = compute_score(price=float(r["price"]), margin_pct=float(r["margin_pct"]), relevance=relevance, compatibility=compatibility, business_goal=req.business_goal or "increase_aov", max_price_in_catalog=1200.0)
-        candidates.append({"product": {"id": r["id"], "name": r["name"], "price": r["price"], "margin_pct": r["margin_pct"]}, "relevance": relevance, "compatibility": compatibility, "score": score})
+        candidates.append({"product": {"id": r["id"], "name": r["name"], "category": r["category"], "price": r["price"], "margin_pct": r["margin_pct"]}, "relevance": relevance, "compatibility": compatibility, "score": score})
 
     # pick top candidate by score
     candidates.sort(key=lambda x: x["score"], reverse=True)
