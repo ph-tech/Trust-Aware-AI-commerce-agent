@@ -46,6 +46,7 @@ function App() {
   const [query, setQuery] = useState("");
   const [goal, setGoal] = useState<BusinessGoal>("increase_aov");
   const [result, setResult] = useState<Recommendation | null>(null);
+  const [sessionId, setSessionId] = useState<number | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 0,
@@ -69,11 +70,16 @@ function App() {
       const response = await fetch("http://127.0.0.1:8000/roundtrip", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: customerMessage, business_goal: goal }),
+        body: JSON.stringify({
+          text: customerMessage,
+          business_goal: goal,
+          session_id: sessionId ?? undefined,
+        }),
       });
       if (!response.ok) throw new Error(`The agent returned ${response.status}.`);
       const recommendation = (await response.json()) as Recommendation;
       setResult(recommendation);
+      setSessionId(recommendation.session_id ?? null);
       setMessages((current) => [
         ...current,
         { id: Date.now() + 1, role: "agent", content: recommendation.message },

@@ -160,7 +160,10 @@ def apply_event(payload: Dict[str, Any]):
     if session_id is None or event is None:
         raise HTTPException(status_code=400, detail="session_id and event required")
 
-    new_trust = trust_module.apply_event(session_id=session_id, event=event, candidate_product_id=candidate_product_id, reasons=reasons)
+    try:
+        new_trust = trust_module.apply_event(session_id=session_id, event=event, candidate_product_id=candidate_product_id, reasons=reasons)
+    except ValueError as error:
+        raise HTTPException(status_code=404 if str(error) == "session not found" else 400, detail=str(error)) from error
     return {"session_id": session_id, "new_trust": new_trust}
 
 
@@ -169,9 +172,16 @@ def roundtrip(req: RoundtripRequest):
     # 1) Extract intent
     intent = extract_intent(IntentRequest(text=req.text))
 
-    # 2) Ensure session
-    session = trust_module.get_or_create_session(business_goal=req.business_goal)
-    session_id = req.session_id or session["id"]
+    # 2) Create a session only for a new conversation; otherwise preserve its state.
+    try:
+        session = (
+            trust_module.get_session(req.session_id)
+            if req.session_id is not None
+            else trust_module.create_session(business_goal=req.business_goal or "increase_aov")
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    session_id = session["id"]
 
     # 3) Product search: by category or all
     conn = get_conn()
@@ -196,16 +206,22 @@ def roundtrip(req: RoundtripRequest):
         # No products found — return a neutral response
         action = "NO_UPSELL"
         reasons = ["no_matching_products"]
-        trust_at_decision = session["interaction_trust"]
+        trust_at_decision = int(session["interaction_trust"])
         trust_module.write_decision(session_id=session_id, action=action, trust_score_at_decision=trust_at_decision, candidate_product_id=None, reasons=reasons, business_goal=req.business_goal, cart_value_at_decision=session["cart_total"])
-        return {"action": action, "reasons": reasons, "message": "I couldn't find matching products right now."}
+        return {
+            "session_id": session_id,
+            "action": action,
+            "reasons": reasons,
+            "trust": trust_at_decision,
+            "message": "I couldn't find matching products right now.",
+        }
 
     # 4) Simple relevance & compatibility heuristics
     candidates = []
     for r in rows:
         compat_list = json.loads(r["compatible_with"] or "[]")
         # Relevance: if explicit product mentioned, boost if name contains the terms
-        relevance = 60.0
+        relevance = 45.0
         if intent.explicit_product and intent.explicit_product in r["name"].lower():
             relevance = 95.0
         elif intent.category and intent.category == r["category"]:
@@ -231,7 +247,16 @@ def roundtrip(req: RoundtripRequest):
     if top["relevance"] < 50.0:
         reasons.append("low_relevance")
 
-    # 6) Get current trust
+    # 6) Rule violations change trust before the upsell gate is evaluated.
+    for reason in reasons:
+        if reason in trust_module.DELTAS:
+            trust_module.apply_event(
+                session_id=session_id,
+                event=reason,
+                candidate_product_id=top["product"]["id"],
+                reasons=[reason],
+            )
+
     current_trust = trust_module.get_session_trust(session_id=session_id)
 
     # 7) Upsell gate

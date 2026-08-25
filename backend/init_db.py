@@ -97,6 +97,22 @@ def ensure_db():
         """
     )
 
+    c.execute(
+        """
+        CREATE TABLE IF NOT EXISTS trust_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER NOT NULL,
+            timestamp TEXT NOT NULL,
+            event TEXT NOT NULL,
+            trust_before INTEGER NOT NULL,
+            trust_after INTEGER NOT NULL,
+            candidate_product_id INTEGER,
+            reasons TEXT,
+            FOREIGN KEY(session_id) REFERENCES sessions(id)
+        )
+        """
+    )
+
     for p in PRODUCTS:
         c.execute(
             """
