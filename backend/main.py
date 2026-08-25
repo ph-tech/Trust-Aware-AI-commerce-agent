@@ -6,9 +6,10 @@ from typing import Optional, List, Dict, Any
 from backend.scoring import compute_score
 from backend import trust as trust_module
 import json
+import os
 
 app = FastAPI(title="Trust-Aware AI Commerce Agent (backend)")
-DB_PATH = "data/catalog.db"
+DB_PATH = os.environ.get("DB_PATH", "data/catalog.db")
 
 # Allow CORS from localhost frontend during development
 app.add_middleware(
@@ -196,7 +197,7 @@ def roundtrip(req: RoundtripRequest):
         action = "NO_UPSELL"
         reasons = ["no_matching_products"]
         trust_at_decision = session["interaction_trust"]
-        trust_module.write_decision(session_id=session_id, action=action, trust_score_at_decision=trust_at_decision, candidate_product_id=None, reasons=reasons, business_goal=req.business_goal, cart_value_at_decision=session["cart_total"])
+        trust_module.write_decision(session_id=session_id, action=action, trust_score_at_decision=trust_at_decision, candidate_product_id=None, reasons=reasons, business_goal=req.business_goal, cart_value_at_decision=0.0)
         return {"action": action, "reasons": reasons, "message": "I couldn't find matching products right now."}
 
     # 4) Simple relevance & compatibility heuristics
@@ -254,7 +255,7 @@ def roundtrip(req: RoundtripRequest):
             action = "NO_UPSELL"
 
     # 8) Write audit log
-    trust_module.write_decision(session_id=session_id, action=action, trust_score_at_decision=current_trust, candidate_product_id=top["product"]["id"], reasons=reasons or ["none"], business_goal=req.business_goal, cart_value_at_decision=trust_module.get_session_cart_total(session_id))
+    trust_module.write_decision(session_id=session_id, action=action, trust_score_at_decision=current_trust, candidate_product_id=top["product"]["id"], reasons=reasons or ["none"], business_goal=req.business_goal, cart_value_at_decision=0.0)
 
     conn.close()
 
