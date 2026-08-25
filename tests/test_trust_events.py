@@ -17,8 +17,14 @@ def temp_db():
     os.environ["DB_PATH"] = db_path
     
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from backend.init_db import init_db
-    init_db(db_path)
+    from backend.init_db import ensure_db
+    
+    # Temporarily override DB_PATH
+    import backend.init_db
+    original = backend.init_db.DB_PATH
+    backend.init_db.DB_PATH = Path(db_path)
+    ensure_db()
+    backend.init_db.DB_PATH = original
     
     yield db_path
     
@@ -30,76 +36,60 @@ def temp_db():
 
 
 def test_trust_initialization(temp_db):
-    """Test that trust score initializes correctly."""
-    from backend.trust import TrustState
+    """Test that trust state initializes correctly via the backend."""
+    from backend import trust
     
-    trust = TrustState()
-    assert trust.score == 100.0, "Initial trust score should be 100.0"
-    assert trust.history == [], "History should start empty"
+    session = trust.get_or_create_session(business_goal="increase_aov")
+    assert session["interaction_trust"] == 100
+    assert session["business_goal"] == "increase_aov"
 
 
 def test_trust_score_update(temp_db):
     """Test trust score updates after events."""
-    from backend.trust import TrustState
+    from backend import trust
     
-    trust = TrustState()
-    initial_score = trust.score
+    session = trust.get_or_create_session()
+    initial_score = trust.get_session_trust(session["id"])
     
-    # Simulate an upsell acceptance
-    trust.record_event("upsell_accepted", {"product_id": "P001", "margin": 0.25})
+    # Apply a decline event
+    new_score = trust.apply_event(session_id=session["id"], event="decline", candidate_product_id=1)
     
-    assert trust.score > initial_score, "Score should increase after upsell acceptance"
-    assert len(trust.history) == 1, "History should record the event"
+    assert new_score < initial_score, "Score should decrease after decline"
 
 
-def test_trust_audit_log_structure(temp_db):
-    """Test that audit logs have correct structure."""
-    from backend.trust import TrustState
+def test_trust_session_creation(temp_db):
+    """Test session creation with different goals."""
+    from backend import trust
     
-    trust = TrustState()
-    trust.record_event("product_viewed", {"product_id": "P001", "category": "laptops"})
+    session_aov = trust.get_or_create_session(business_goal="increase_aov")
+    session_conv = trust.get_or_create_session(business_goal="increase_conversion")
     
-    assert len(trust.history) == 1
-    event = trust.history[0]
-    
-    assert "event_type" in event
-    assert "metadata" in event
-    assert "timestamp" in event
-    assert event["event_type"] == "product_viewed"
+    assert session_aov["business_goal"] == "increase_aov"
+    assert session_conv["business_goal"] == "increase_conversion"
+    assert session_aov["id"] != session_conv["id"]
 
 
-def test_trust_upsell_gate(temp_db):
-    """Test trust-based upsell gating logic."""
-    from backend.trust import TrustState
+def test_trust_deterministic_deltas(temp_db):
+    """Test that trust deltas are deterministic."""
+    from backend import trust
     
-    trust = TrustState()
+    session = trust.get_or_create_session()
+    initial = 100
     
-    # With high trust, upsell should be allowed
-    can_upsell = trust.can_upsell()
-    assert can_upsell is True, "Should allow upsell with high initial trust"
-    
-    # Simulate multiple rejections to lower trust
-    for _ in range(5):
-        trust.record_event("upsell_declined", {"reason": "budget_constraint"})
-    
-    # With low trust, upsell might be restricted
-    can_upsell = trust.can_upsell()
-    # Whether True or False, the method should return a boolean
-    assert isinstance(can_upsell, bool)
+    # Decline event should always apply -10
+    new_score = trust.apply_event(session_id=session["id"], event="decline", candidate_product_id=1)
+    assert new_score == initial - 10
 
 
-def test_trust_export(temp_db):
-    """Test that trust state can be exported to JSON for audit."""
-    from backend.trust import TrustState
+def test_trust_boundaries(temp_db):
+    """Test trust score stays within 0-100."""
+    from backend import trust
     
-    trust = TrustState()
-    trust.record_event("product_viewed", {"product_id": "P001"})
-    trust.record_event("upsell_accepted", {"product_id": "P002"})
+    session = trust.get_or_create_session()
     
-    export = trust.export_audit_log()
+    # Apply many decline events to push score to 0
+    for _ in range(20):
+        score = trust.apply_event(session_id=session["id"], event="decline", candidate_product_id=1)
     
-    assert isinstance(export, (dict, str)), "Export should be dict or JSON string"
-    # If it's a string, it should be valid JSON
-    if isinstance(export, str):
-        parsed = json.loads(export)
-        assert isinstance(parsed, dict)
+    assert score >= 0, "Score should not go below 0"
+    assert score <= 100, "Score should not exceed 100"

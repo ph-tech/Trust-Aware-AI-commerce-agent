@@ -17,8 +17,14 @@ def temp_db():
     os.environ["DB_PATH"] = db_path
     
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from backend.init_db import init_db
-    init_db(db_path)
+    from backend.init_db import ensure_db
+    
+    # Temporarily override DB_PATH
+    import backend.init_db
+    original = backend.init_db.DB_PATH
+    backend.init_db.DB_PATH = Path(db_path)
+    ensure_db()
+    backend.init_db.DB_PATH = original
     
     yield db_path
     
