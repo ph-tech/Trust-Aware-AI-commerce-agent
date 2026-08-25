@@ -120,25 +120,22 @@ function App() {
     <main className="page">
       <header className="topbar">
         <a className="brand" href="/">
-          <span className="brand-mark">t</span>
+          <span className="brand-mark">T</span>
           <span>truely<span>cart</span></span>
         </a>
         <nav aria-label="Primary navigation"><a href="#shop">Shop</a><a href="#deals">Deals</a><a href="#how-it-works">How it works</a></nav>
-        <div className="online"><i /> Trusted picks</div>
+        <div className="online"><i /> Personalised picks</div>
       </header>
 
       <section className="hero">
         <div>
-          <p className="eyebrow">Shopping, but smarter</p>
-          <h1>Find your next<br /><em>favourite thing.</em></h1>
-          <p className="intro">Personalised technology picks, honest pricing, and zero pushy upsells.</p>
-          <div className="hero-perks"><span>Curated for you</span><span>Prices in INR</span><span>Trust-led</span></div>
+          <p className="eyebrow">Technology, made simple</p>
+          <h1>Shop electronics<br />with confidence.</h1>
+          <p className="intro">Tell us what you need and your budget. We will narrow down the catalog to useful, relevant options.</p>
+          <div className="hero-perks"><span>Prices in INR</span><span>Transparent recommendations</span></div>
         </div>
-        <div className="hero-display" aria-hidden="true">
-          <div className="hero-burst" />
-          <div className="display-laptop"><i /><b /></div>
-          <div className="floating-tag tag-one">Top rated</div>
-          <div className="floating-tag tag-two">From ₹599</div>
+        <div className="hero-photo" role="img" aria-label="Laptop on a desk">
+          <div className="photo-caption"><span>Built around your needs</span><strong>Clear choices. No noise.</strong></div>
           <div className="trust-card">
             <div className="trust-ring" style={{ "--trust": `${trust}%` } as CSSProperties}>
               <span>{trust}</span><small>/100</small>
@@ -149,16 +146,16 @@ function App() {
       </section>
 
       <section className="category-row" id="shop">
-        <button type="button" onClick={() => setQuery("I need a laptop under 60000")}><span className="category-icon laptop-icon" /><b>Laptops</b><small>For work & play</small></button>
-        <button type="button" onClick={() => setQuery("Show me a phone under 40000")}><span className="category-icon phone-icon" /><b>Phones</b><small>Power in your pocket</small></button>
-        <button type="button" onClick={() => setQuery("Find a useful laptop accessory")}><span className="category-icon accessory-icon" /><b>Accessories</b><small>Complete your setup</small></button>
+        <button type="button" onClick={() => setQuery("I need a laptop under 60000")}><span>01</span><b>Laptops</b><small>Work, study and everyday use</small></button>
+        <button type="button" onClick={() => setQuery("Show me a phone under 40000")}><span>02</span><b>Phones</b><small>Find a phone that fits your day</small></button>
+        <button type="button" onClick={() => setQuery("Find a useful laptop accessory")}><span>03</span><b>Accessories</b><small>Useful upgrades for your setup</small></button>
       </section>
 
       <section className="workspace" id="how-it-works">
         <div className="chat-panel">
           <div className="panel-head">
-            <div><p className="micro-label">Your personal shopper</p><h2>What can we find today?</h2></div>
-            <span className="secure">No pressure, ever</span>
+            <div><p className="micro-label">Product finder</p><h2>What are you looking for?</h2></div>
+            <span className="secure">Recommendation history</span>
           </div>
           <div className="messages" aria-live="polite">
             {messages.map((message) => (
@@ -167,7 +164,7 @@ function App() {
                 <p>{message.content}</p>
               </article>
             ))}
-            {loading && <article className="message agent"><span className="avatar">t</span><p className="typing">Finding the right match...</p></article>}
+            {loading && <article className="message agent"><span className="avatar">T</span><p className="typing">Checking available products...</p></article>}
           </div>
           <div className="quick-prompts">
             {quickPrompts.map((prompt) => <button type="button" key={prompt} onClick={() => setQuery(prompt)}>{prompt}</button>)}
@@ -179,7 +176,7 @@ function App() {
         </div>
 
         <aside className="decision-panel">
-          <div className="panel-head"><div><p className="micro-label">For you</p><h2>Today&apos;s best match</h2></div><span className={`status ${result?.action === "UPSELL" ? "good" : ""}`}>{result?.action?.replace("_", " ") ?? "READY"}</span></div>
+          <div className="panel-head"><div><p className="micro-label">Recommendation</p><h2>Best match</h2></div><span className={`status ${result?.action === "UPSELL" ? "good" : ""}`}>{result?.action?.replace("_", " ") ?? "READY"}</span></div>
           <label className="goal-label" htmlFor="goal">Your shopping goal</label>
           <select id="goal" value={goal} onChange={(event) => setGoal(event.target.value as BusinessGoal)}>
             <option value="increase_aov">Higher order value</option>
@@ -201,7 +198,7 @@ function App() {
                 <button type="button" className="primary-action" onClick={() => recordFeedback("accept")}>This works</button>
               </div>
             </div>
-          ) : <div className="empty-state"><span className="empty-orb">t</span><h3>Your shortlist starts here</h3><p>Share your need and budget. We will do the rest, transparently.</p></div>}
+          ) : <div className="empty-state"><span className="empty-orb">T</span><h3>Start with what you need</h3><p>Share a product type and a budget to get a focused recommendation.</p></div>}
           {result?.reasons?.length ? <p className="notes">Decision notes: {result.reasons.join(", ")}</p> : null}
         </aside>
       </section>
