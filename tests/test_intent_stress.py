@@ -136,6 +136,6 @@ def test_scoring_edge_cases(temp_db):
     for text in edge_cases:
         response = client.post(
             "/roundtrip",
-            json={"text": text, "business_goal": "maximize_conversion"}
+            json={"text": text, "business_goal": "increase_conversion"}
         )
         assert response.status_code == 200, f"Failed for: {text}"

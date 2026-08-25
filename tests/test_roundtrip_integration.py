@@ -19,7 +19,7 @@ def temp_db():
     
     # Import and run ensure_db with temp path
     sys.path.insert(0, str(Path(__file__).parent.parent))
-    from backend.init_db import ensure_db, DB_PATH as original_path
+    from backend.init_db import ensure_db
     
     # Temporarily override DB_PATH
     import backend.init_db
