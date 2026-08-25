@@ -4,8 +4,9 @@ import sqlite3
 import json
 from datetime import datetime
 from typing import Optional, Dict, Any
+import os
 
-DB_PATH = "data/catalog.db"
+DB_PATH = os.environ.get("DB_PATH", "data/catalog.db")
 
 
 def _conn():
