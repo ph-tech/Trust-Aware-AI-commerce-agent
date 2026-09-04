@@ -26,10 +26,38 @@ interface Recommendation {
   };
 }
 
+interface DemoScenario {
+  title: string;
+  customer: string;
+  prompt: string;
+  tag: string;
+}
+
 const quickPrompts = [
   "I need a laptop under 60000",
   "Show me a phone under 40000",
   "Find a useful laptop accessory",
+];
+
+const demoScenarios: DemoScenario[] = [
+  {
+    title: "Budget guardian",
+    customer: "Aditi, student",
+    prompt: "I need a laptop under 45000",
+    tag: "Protect the constraint",
+  },
+  {
+    title: "The third decline",
+    customer: "Rohan, returning shopper",
+    prompt: "No thanks, I only need a laptop accessory under 2000",
+    tag: "Know when to stop",
+  },
+  {
+    title: "Intent over margin",
+    customer: "Maya, first-time buyer",
+    prompt: "Show me a phone under 40000",
+    tag: "Choose relevance",
+  },
 ];
 
 const formatRupees = (amount: number) =>
@@ -47,6 +75,7 @@ function App() {
   const [goal, setGoal] = useState<BusinessGoal>("increase_aov");
   const [result, setResult] = useState<Recommendation | null>(null);
   const [sessionId, setSessionId] = useState<number | null>(null);
+  const [activeScenario, setActiveScenario] = useState(0);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 0,
@@ -121,6 +150,16 @@ function App() {
   }
 
   const trust = result?.trust ?? 100;
+  const recommendationScore = result?.candidate?.score ?? 76;
+  const projectedRepeatRate = Math.round(18 + trust * 0.52);
+  const projectedLtv = Math.round(1_250 + trust * 67);
+  const aggressiveTrust = Math.max(0, trust - 32);
+  const aggressiveLtv = Math.round(1_250 + aggressiveTrust * 67);
+
+  function loadScenario(index: number) {
+    setActiveScenario(index);
+    setQuery(demoScenarios[index].prompt);
+  }
 
   return (
     <main className="page">
@@ -207,6 +246,53 @@ function App() {
           ) : <div className="empty-state"><span className="empty-orb">T</span><h3>Start with what you need</h3><p>Share a product type and a budget to get a focused recommendation.</p></div>}
           {result?.reasons?.length ? <p className="notes">Decision notes: {result.reasons.join(", ")}</p> : null}
         </aside>
+      </section>
+
+      <section className="trust-twin" id="deals">
+        <div className="twin-heading">
+          <div>
+            <p className="micro-label">The Trust Twin</p>
+            <h2>Every recommendation has a second outcome.</h2>
+            <p>Most commerce agents optimise the next click. Truelycart models what that choice does to the next 10 customer moments.</p>
+          </div>
+          <div className="live-signal"><span className="pulse" /> LIVE DECISION MODEL</div>
+        </div>
+        <div className="twin-grid">
+          <article className="outcome-card respectful">
+            <div className="outcome-top"><span>Truelycart</span><b>Trust-first</b></div>
+            <h3>Recommend only when it fits.</h3>
+            <div className="metric-row"><span>Trust retained</span><strong>{trust}<small>/100</small></strong></div>
+            <div className="metric-bar"><i style={{ width: `${trust}%` }} /></div>
+            <div className="twin-metrics"><div><small>Repeat intent</small><b>{projectedRepeatRate}%</b></div><div><small>Projected LTV</small><b>{formatRupees(projectedLtv)}</b></div></div>
+            <p className="outcome-note">The agent earns the right to recommend again.</p>
+          </article>
+          <div className="versus">VS<span>same customer</span></div>
+          <article className="outcome-card aggressive">
+            <div className="outcome-top"><span>Typical sales bot</span><b>Click-first</b></div>
+            <h3>Push the higher-margin item.</h3>
+            <div className="metric-row"><span>Trust retained</span><strong>{aggressiveTrust}<small>/100</small></strong></div>
+            <div className="metric-bar"><i style={{ width: `${aggressiveTrust}%` }} /></div>
+            <div className="twin-metrics"><div><small>Repeat intent</small><b>{Math.max(0, projectedRepeatRate - 17)}%</b></div><div><small>Projected LTV</small><b>{formatRupees(aggressiveLtv)}</b></div></div>
+            <p className="outcome-note">One extra upsell can cost the next purchase.</p>
+          </article>
+        </div>
+        <div className="difference-callout">
+          <span>Trust dividend</span>
+          <strong>+{formatRupees(projectedLtv - aggressiveLtv)} projected value per customer</strong>
+          <small>Illustrative demo model based on the current trust signal and a 10-touchpoint customer journey.</small>
+        </div>
+      </section>
+
+      <section className="scenario-lab">
+        <div className="lab-copy"><p className="micro-label">Judge mode</p><h2>Try to break the agent.</h2><p>Use these difficult commerce moments to see the decision system choose restraint over a convenient sale.</p></div>
+        <div className="scenario-list">
+          {demoScenarios.map((scenario, index) => (
+            <button className={activeScenario === index ? "scenario active" : "scenario"} key={scenario.title} type="button" onClick={() => loadScenario(index)}>
+              <span>{String(index + 1).padStart(2, "0")}</span><div><b>{scenario.title}</b><small>{scenario.customer}</small></div><em>{scenario.tag}</em>
+            </button>
+          ))}
+        </div>
+        <button className="run-scenario" type="button" onClick={() => loadScenario(activeScenario)}>Load scenario into agent <span>→</span></button>
       </section>
       {error && <p className="error">{error}</p>}
     </main>
