@@ -2,32 +2,43 @@
 # Implements the Interaction Trust deltas from the spec and writes decisions to the SQLite DB.
 import sqlite3
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
-
-DB_PATH = "data/catalog.db"
+import os
 
 
 def _conn():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(os.environ.get("DB_PATH", "data/catalog.db"))
     conn.row_factory = sqlite3.Row
     return conn
 
 
-def get_or_create_session(business_goal: str = "increase_aov") -> Dict[str, Any]:
+def create_session(business_goal: str = "increase_aov") -> Dict[str, Any]:
     conn = _conn()
     c = conn.cursor()
-    # Create a fresh session (simple single-session prototype). We always create a new session.
-    created_at = datetime.utcnow().isoformat()
+    created_at = datetime.now(timezone.utc).isoformat()
     c.execute(
         "INSERT INTO sessions (created_at, interaction_trust, business_goal, cart_total) VALUES (?, ?, ?, ?)",
         (created_at, 100, business_goal, 0.0),
     )
     conn.commit()
     session_id = c.lastrowid
-    c.execute("SELECT id, created_at, interaction_trust, business_goal, cart_total, budget_stated FROM sessions WHERE id = ?", (session_id,))
+    conn.close()
+    return get_session(session_id)
+
+
+def get_session(session_id: int) -> Dict[str, Any]:
+    conn = _conn()
+    c = conn.cursor()
+    c.execute(
+        "SELECT id, created_at, interaction_trust, business_goal, cart_total, budget_stated "
+        "FROM sessions WHERE id = ?",
+        (session_id,),
+    )
     row = c.fetchone()
     conn.close()
+    if not row:
+        raise ValueError("session not found")
     return dict(row)
 
 
@@ -80,7 +91,7 @@ def write_decision(
 ) -> None:
     conn = _conn()
     c = conn.cursor()
-    timestamp = datetime.utcnow().isoformat()
+    timestamp = datetime.now(timezone.utc).isoformat()
     c.execute(
         "INSERT INTO decisions (session_id, timestamp, action, trust_score_at_decision, candidate_product_id, reasons, business_goal, cart_value_at_decision) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         (session_id, timestamp, action, int(trust_score_at_decision), candidate_product_id, json.dumps(reasons), business_goal, cart_value_at_decision),
@@ -97,26 +108,35 @@ def apply_event(session_id: int, event: str, candidate_product_id: Optional[int]
     """
     conn = _conn()
     c = conn.cursor()
-    c.execute("SELECT interaction_trust, cart_total, business_goal FROM sessions WHERE id = ?", (session_id,))
+    c.execute("SELECT interaction_trust FROM sessions WHERE id = ?", (session_id,))
     row = c.fetchone()
     if not row:
         conn.close()
         raise ValueError("session not found")
     current = int(row["interaction_trust"])
-    delta = DELTAS.get(event, 0)
+    if event not in DELTAS:
+        conn.close()
+        raise ValueError(f"unsupported trust event: {event}")
+    delta = DELTAS[event]
     new_trust = _apply_delta(current, delta)
     c.execute("UPDATE sessions SET interaction_trust = ? WHERE id = ?", (new_trust, session_id))
+    c.execute(
+        """
+        INSERT INTO trust_events (
+            session_id, timestamp, event, trust_before, trust_after,
+            candidate_product_id, reasons
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            session_id,
+            datetime.now(timezone.utc).isoformat(),
+            event,
+            current,
+            new_trust,
+            candidate_product_id,
+            json.dumps(reasons or [f"event:{event}"]),
+        ),
+    )
     conn.commit()
     conn.close()
-
-    # Write a decision/audit-log entry for visibility
-    write_decision(
-        session_id=session_id,
-        action="UPSELL" if event == "accept" else "NO_UPSELL",
-        trust_score_at_decision=current,  # trust at moment of decision
-        candidate_product_id=candidate_product_id,
-        reasons=reasons or [f"event:{event}"],
-        business_goal=row["business_goal"],
-        cart_value_at_decision=row["cart_total"],
-    )
     return new_trust
